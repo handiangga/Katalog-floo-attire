@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {
   BookOpen, ChevronLeft, ChevronRight, CirclePlus, CloudUpload, House,
-  Image, LogOut, Pencil, Save, Search, Shirt, Tag, Trash2, X,
+  Image, LogOut, Menu, Pencil, Save, Search, Shirt, Tag, Trash2, X,
 } from 'lucide-react';
 import {request, imageUrl, rupiah} from '../lib/api';
 import PageContentEditor from './PageContentEditor';
@@ -20,9 +20,12 @@ const views = [
 export default function Admin() {
   const navigate = useNavigate();
   const fileInput = useRef(null);
+  const menuToggle = useRef(null);
+  const heading = useRef(null);
   const token = sessionStorage.getItem('floo_admin_token');
   const auth = {Authorization: 'Bearer ' + token};
   const [view, setView] = useState('dashboard');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -75,6 +78,8 @@ export default function Admin() {
   function selectView(id) {
     if (id === 'form') reset();
     setView(id);
+    if (menuOpen) heading.current?.focus({preventScroll: true});
+    setMenuOpen(false);
     setMessage('');
     window.scrollTo({top: 0});
   }
@@ -250,7 +255,8 @@ export default function Admin() {
               <input id="admin-product-photo" className="sr-only" ref={fileInput} type="file" disabled={busy}
                 accept="image/jpeg,image/png,image/webp" onChange={event => selectPhoto(event.target.files[0])}/>
               <CloudUpload size={28} aria-hidden="true"/>
-              <span>Seret foto ke sini atau klik untuk memilih</span>
+              <span>Pilih foto produk</span>
+              <span className="hidden md:inline">Atau seret foto ke sini</span>
               <small>JPG, PNG, WebP · Maks. 10 MB</small>
             </label>
           </div>
@@ -333,10 +339,21 @@ export default function Admin() {
 
   return (
     <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
+      <aside className="dashboard-sidebar" data-menu-open={menuOpen} onKeyDown={event => {
+        if (event.key !== 'Escape' || !menuOpen) return;
+        setMenuOpen(false);
+        menuToggle.current?.focus();
+      }}>
         <Link to="/katalog" className="dashboard-brand" aria-label="Buka katalog Floo Attire">
           <span>F</span><strong>FLOO ATTIRE</strong><small>KEBAYA RENTAL</small>
         </Link>
+        <button type="button" className="dashboard-menu-toggle" ref={menuToggle}
+          aria-label={menuOpen ? 'Tutup menu admin' : 'Buka menu admin'}
+          aria-expanded={menuOpen} aria-controls="dashboard-menu"
+          onClick={() => setMenuOpen(open => !open)}>
+          {menuOpen ? <X size={23} aria-hidden="true"/> : <Menu size={23} aria-hidden="true"/>}
+        </button>
+        <div id="dashboard-menu" className="dashboard-menu-panel">
         <nav className="dashboard-nav" aria-label="Navigasi admin">
           {views.map(({id, label, icon: Icon}) => (
             <button key={id} type="button" className={id === view ? 'active' : ''}
@@ -349,10 +366,11 @@ export default function Admin() {
           sessionStorage.removeItem('floo_admin_token');
           navigate('/admin/login', {replace: true});
         }}><LogOut size={21}/> Keluar</button>
+        </div>
       </aside>
       <main className="dashboard-main">
         <header className="dashboard-header">
-          <h1>{view === 'dashboard' ? 'Dashboard Admin' : views.find(item => item.id === view).label}</h1>
+          <h1 ref={heading} tabIndex={-1}>{view === 'dashboard' ? 'Dashboard Admin' : views.find(item => item.id === view).label}</h1>
           {(view === 'dashboard' || view === 'products') && (
             <label className="search-field"><Search size={18}/>
               <input aria-label="Cari di dashboard" placeholder="Cari di dashboard..."
