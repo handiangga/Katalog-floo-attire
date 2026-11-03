@@ -1,23 +1,12 @@
-import { Link } from "react-router-dom";
-import { Instagram } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import { Heart, Instagram, Menu } from "lucide-react";
 export default function Header() {
   return (
-    <header className="bg-white/90 border-b border-stone-200">
-      <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-        <Link to="/" className="brand text-2xl tracking-widest text-wine">
-          FLOO <span className="text-ink">ATTIRE</span>
-          <span className="block font-sans text-[9px] tracking-[.38em] text-stone-500">
-            KEBAYA RENTAL
-          </span>
-        </Link>
-        <a
-          href="https://instagram.com/floo_attire"
-          target="_blank"
-          rel="noreferrer"
-          className="flex gap-2 text-sm items-center text-stone-600"
-        >
-          <Instagram size={18} /> Instagram
-        </a>
+    <header className="site-header">
+      <div className="header-inner">
+        <Link to="/" className="brand"><span className="brand-mark">F</span><span>FLOO ATTIRE<small>KEBAYA RENTAL</small></span></Link>
+        <nav className="main-nav"><NavLink to="/katalog">Katalog</NavLink><NavLink to="/about">Tentang</NavLink><NavLink to="/rules">Rules</NavLink></nav>
+        <div className="header-actions"><a href="https://instagram.com/floo_attire" target="_blank" rel="noreferrer"><Instagram size={19}/><span>Instagram</span></a><span className="divider"/><button aria-label="Favorit"><Heart size={20}/><span>Favorit</span></button><button className="menu-button" aria-label="Menu"><Menu size={21}/></button></div>
       </div>
     </header>
   );
