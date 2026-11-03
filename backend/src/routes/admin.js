@@ -21,8 +21,8 @@ router.post('/products',async(req,res,next)=>{try{
 }catch(e){next(e);}});
 router.put('/products/:id',async(req,res,next)=>{try{
  if(!valid(req.body))return res.status(400).json({error:'Nama dan harga tidak valid'});
- const b=req.body;const {rows}=await pool.query(`UPDATE products SET name=$1,category_id=$2,price=$3,color=$4,sizes=$5,description=$6,available=$7 WHERE id=$8 RETURNING *`,
- [b.name.trim(),b.category_id||null,Number(b.price),b.color||'',b.sizes||'',b.description||'',b.available!==false,req.params.id]);
+ const b=req.body;const {rows}=await pool.query(`UPDATE products SET name=$1,category_id=$2,price=$3,color=$4,sizes=$5,description=$6,available=COALESCE($7, available) WHERE id=$8 RETURNING *`,
+ [b.name.trim(),b.category_id||null,Number(b.price),b.color||'',b.sizes||'',b.description||'',b.available === undefined ? null : b.available !== false,req.params.id]);
  if(!rows[0])return res.status(404).json({error:'Produk tidak ditemukan'});res.json(rows[0]);
 }catch(e){next(e);}});
 router.delete('/products/:id',async(req,res,next)=>{try{

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 255">
+  <defs>
+    <g id="bloom">
+      <g fill="#f4b3ba" stroke="#ffdbd8" stroke-width="1">
+        <path id="petal" d="M0 1C-26-13-18-39-4-39 12-41 19-15 0 1Z"/>
+        <use href="#petal" transform="rotate(72)"/><use href="#petal" transform="rotate(144)"/>
+        <use href="#petal" transform="rotate(216)"/><use href="#petal" transform="rotate(288)"/>
+      </g>
+      <circle r="8" fill="#c87888"/><circle r="4" fill="#ffe0ce"/>
+    </g>
+    <path id="leaf" d="M0 0Q7-22 30-26 28-6 0 0Z" fill="#d89891" stroke="#f1beb0" stroke-width="1"/>
+  </defs>
+  <g opacity=".72">
+    <path d="M5 254Q45 180 104 144T191 47M22 244Q83 229 172 210M40 206Q48 149 21 82" fill="none" stroke="#e6aca3" stroke-width="2"/>
+    <use href="#leaf" transform="translate(64 175) rotate(-90)"/>
+    <use href="#leaf" transform="translate(87 156) rotate(52)"/>
+    <use href="#leaf" transform="translate(147 109) rotate(-73)"/>
+    <use href="#leaf" transform="translate(172 86) rotate(35)"/>
+    <use href="#leaf" transform="translate(112 224) rotate(-44)"/>
+    <use href="#leaf" transform="translate(151 215) rotate(65)"/>
+    <use href="#leaf" transform="translate(39 145) rotate(-111)"/>
+    <use href="#bloom" transform="translate(49 208) rotate(-10) scale(1.05)"/>
+    <use href="#bloom" transform="translate(120 134) rotate(12) scale(.62)"/>
+    <use href="#bloom" transform="translate(189 48) rotate(27) scale(.55)"/>
+    <use href="#bloom" transform="translate(172 209) scale(.43)"/>
+    <use href="#bloom" transform="translate(21 85) scale(.42)"/>
+  </g>
+</svg>
