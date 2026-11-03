@@ -1,11 +1,12 @@
 import {useEffect, useRef, useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {
-  BookOpen, ChevronLeft, ChevronRight, CirclePlus, CloudUpload, House,
+  BookOpen, ChevronLeft, ChevronRight, CirclePlus, CloudUpload, Eye, House,
   Image, LogOut, Menu, Pencil, Save, Search, Shirt, Tag, Trash2, X,
 } from 'lucide-react';
 import {request, imageUrl, rupiah} from '../lib/api';
 import PageContentEditor from './PageContentEditor';
+import {notifySuccess} from '../lib/adminAlerts';
 
 const emptyForm = {name: '', price: '', category_id: '', color: '', sizes: '', description: ''};
 const pageSize = 5;
@@ -33,6 +34,7 @@ export default function Admin() {
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState('');
   const [newCategory, setNewCategory] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
@@ -132,7 +134,8 @@ export default function Admin() {
         await request('/admin/products/' + saved.id + '/images', {method: 'POST', headers: auth, body: data});
       }
       reset();
-      setMessage('Produk berhasil disimpan.');
+      setMessage('');
+      void notifySuccess(editing ? 'Produk berhasil diedit' : 'Produk berhasil ditambahkan');
     } catch (error) {
       if (saved) setEditing({...editing, ...saved});
       setMessage(saved ? 'Data produk tersimpan, tetapi foto gagal diunggah. ' + error.message : error.message);
@@ -148,8 +151,9 @@ export default function Admin() {
     try {
       await request('/admin/products/' + product.id, {method: 'DELETE', headers: auth});
       if (editing?.id === product.id) reset();
-      await refresh();
-      setMessage('Produk berhasil dihapus.');
+      setMessage('');
+      void notifySuccess('Produk berhasil dihapus');
+      await refresh().catch(error => setMessage('Gagal memuat ulang daftar produk. ' + error.message));
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -172,18 +176,39 @@ export default function Admin() {
     }
   }
 
-  async function addCategory(event) {
+  function resetCategory() {
+    setNewCategory('');
+    setEditingCategory(null);
+  }
+
+  async function saveCategory(event) {
     event.preventDefault();
     setBusy(true);
     try {
-      await request('/admin/categories', {
-        method: 'POST',
+      await request('/admin/categories' + (editingCategory ? '/' + editingCategory.id : ''), {
+        method: editingCategory ? 'PUT' : 'POST',
         headers: auth,
         body: JSON.stringify({name: newCategory}),
       });
-      setNewCategory('');
+      resetCategory();
       await refresh();
-      setMessage('Kategori berhasil ditambahkan.');
+      setMessage(editingCategory ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeCategory(item) {
+    if (!window.confirm('Hapus kategori ' + item.name + '?')) return;
+    setBusy(true);
+    try {
+      await request('/admin/categories/' + item.id, {method: 'DELETE', headers: auth});
+      if (editingCategory?.id === item.id) resetCategory();
+      if (category === String(item.id)) setCategory('');
+      await refresh();
+      setMessage('Kategori berhasil dihapus.');
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -218,11 +243,17 @@ export default function Admin() {
     <section className="dashboard-panel">
       <h2>{editing ? 'Edit Produk' : 'Tambah Produk'}</h2>
       <form onSubmit={saveProduct} className="dashboard-fields">
-        <label>Nama Produk <span aria-hidden="true">*</span>
+        <label><span>Nama Produk <span aria-hidden="true">*</span></span>
           <input className="field" required placeholder="Melati Lavender" {...field('name')}/>
         </label>
-        <label>Harga Sewa (Rp) <span aria-hidden="true">*</span>
-          <input className="field" required type="number" min="0" placeholder="250000" {...field('price')}/>
+        <label><span>Harga Sewa (Rp) <span aria-hidden="true">*</span></span>
+          <input className="field" required type="text" inputMode="numeric" placeholder="250.000"
+            value={String(form.price).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+            onChange={event => setForm(current => ({
+              ...current,
+              price: event.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''),
+            }))}
+          />
         </label>
         <div className="dashboard-pair">
           <label>Kategori
@@ -284,21 +315,24 @@ export default function Admin() {
         </select>
       </div>
       <div className="dashboard-table-wrap">
-        <table className="dashboard-table">
-          <thead><tr>
-            <th scope="col">Foto</th><th scope="col">Nama Produk</th><th scope="col">Kategori</th>
-            <th scope="col">Harga Sewa</th><th scope="col">Aksi</th>
+        <table className="dashboard-table" role="table" aria-label="Daftar produk">
+          <thead role="rowgroup"><tr role="row">
+            <th role="columnheader" scope="col">Foto</th><th role="columnheader" scope="col">Nama Produk</th><th role="columnheader" scope="col">Kategori</th>
+            <th role="columnheader" scope="col">Harga Sewa</th><th role="columnheader" scope="col">Aksi</th>
           </tr></thead>
-          <tbody>
+          <tbody role="rowgroup">
             {filtered.slice(start, start + pageSize).map(product => (
-              <tr key={product.id}>
-                <td>{product.images?.[0] ? (
+              <tr key={product.id} role="row">
+                <td role="cell">{product.images?.[0] ? (
                   <img src={imageUrl(product.images[0].url)} alt={product.name}/>
                 ) : <span className="dashboard-no-photo"><Image size={20} aria-label="Tanpa foto"/></span>}</td>
-                <td><strong>{product.name}</strong><small>{product.description}</small></td>
-                <td><span className="dashboard-tag">{product.category || 'Tanpa kategori'}</span></td>
-                <td>{rupiah(product.price)}</td>
-                <td><div className="dashboard-row-actions">
+                <td role="cell"><strong>{product.name}</strong><small>{product.description}</small></td>
+                <td role="cell"><span className="dashboard-tag">{product.category || 'Tanpa kategori'}</span></td>
+                <td role="cell">{rupiah(product.price)}</td>
+                <td role="cell"><div className="dashboard-row-actions">
+                  <Link to={'/produk/' + product.slug} title="Lihat produk" aria-label={'Lihat ' + product.name}>
+                    <Eye size={16}/>
+                  </Link>
                   <button type="button" title="Edit produk" aria-label={'Edit ' + product.name}
                     disabled={busy} onClick={() => edit(product)}><Pencil size={16}/></button>
                   <button type="button" title="Hapus produk" aria-label={'Hapus ' + product.name}
@@ -306,7 +340,7 @@ export default function Admin() {
                 </div></td>
               </tr>
             ))}
-            {!filtered.length && <tr><td className="dashboard-empty" colSpan={5}>
+            {!filtered.length && <tr role="row"><td role="cell" className="dashboard-empty" colSpan={5}>
               {loading ? 'Memuat produk...' : 'Tidak ada produk yang cocok.'}
             </td></tr>}
           </tbody>
@@ -365,6 +399,7 @@ export default function Admin() {
         <button type="button" className="dashboard-logout" onClick={() => {
           sessionStorage.removeItem('floo_admin_token');
           navigate('/admin/login', {replace: true});
+          void notifySuccess('Logout berhasil');
         }}><LogOut size={21}/> Keluar</button>
         </div>
       </aside>
@@ -391,14 +426,36 @@ export default function Admin() {
         {view === 'categories' && (
           <section className="dashboard-panel">
             <h2>Kelola Kategori</h2>
-            <form className="dashboard-fields" onSubmit={addCategory}>
+            <form className="dashboard-fields" onSubmit={saveCategory}>
               <label>Nama kategori
                 <input className="field" required value={newCategory} onChange={event => setNewCategory(event.target.value)}/>
               </label>
-              <div className="dashboard-actions"><button className="btn" disabled={busy}>Tambah Kategori</button></div>
+              <div className="dashboard-actions">
+                {editingCategory && <button type="button" className="dashboard-secondary" disabled={busy} onClick={resetCategory}>Batal</button>}
+                <button className="btn" disabled={busy}>{editingCategory ? 'Simpan Kategori' : 'Tambah Kategori'}</button>
+              </div>
             </form>
-            <ul className="flex flex-wrap gap-2 mt-4">
-              {categories.map(item => <li className="dashboard-tag" key={item.id}>{item.name}</li>)}
+            <ul className="dashboard-category-list">
+              {categories.map(item => (
+                <li key={item.id}>
+                  <span className="dashboard-tag">{item.name}</span>
+                  <div className="dashboard-row-actions">
+                    <button type="button" title="Lihat produk dalam kategori" aria-label={'Lihat produk dalam kategori ' + item.name}
+                      disabled={busy} onClick={() => {
+                        search('');
+                        setCategory(String(item.id));
+                        selectView('products');
+                      }}><Eye size={16}/></button>
+                    <button type="button" title="Edit kategori" aria-label={'Edit kategori ' + item.name}
+                      disabled={busy} onClick={() => {
+                        setEditingCategory(item);
+                        setNewCategory(item.name);
+                      }}><Pencil size={16}/></button>
+                    <button type="button" title="Hapus kategori" aria-label={'Hapus kategori ' + item.name}
+                      disabled={busy} onClick={() => removeCategory(item)}><Trash2 size={16}/></button>
+                  </div>
+                </li>
+              ))}
             </ul>
           </section>
         )}

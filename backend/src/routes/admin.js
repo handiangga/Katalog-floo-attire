@@ -12,6 +12,46 @@ const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*102
 function valid(b){return typeof b.name==='string'&&!!b.name.trim()&&Number.isSafeInteger(Number(b.price))&&Number(b.price)>=0;}
 function slug(name){return name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70)||'produk';}
 router.post('/categories',async(req,res,next)=>{try{if(typeof req.body.name!=='string'||!req.body.name.trim())return res.status(400).json({error:'Nama kategori wajib'});res.json((await pool.query('INSERT INTO categories(name) VALUES($1) RETURNING *',[req.body.name.trim()])).rows[0]);}catch(e){next(e);}});
+router.put('/categories/:id', async (req, res, next) => {
+  const name = typeof req.body.name === 'string' && req.body.name.trim();
+  if (!name) return res.status(400).json({error: 'Nama kategori wajib'});
+  try {
+    const {rows} = await pool.query('UPDATE categories SET name=$1 WHERE id=$2 RETURNING *', [name, req.params.id]);
+    if (!rows.length) return res.status(404).json({error: 'Kategori tidak ditemukan'});
+    res.json(rows[0]);
+  } catch (error) {
+    if (error.code === '23505') return res.status(409).json({error: 'Nama kategori sudah digunakan'});
+    next(error);
+  }
+});
+
+router.delete('/categories/:id', async (req, res, next) => {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const {id} = req.params;
+    // Lock the category so a concurrent product cannot reference it while deletion is checked.
+    const category = await client.query('SELECT id FROM categories WHERE id=$1 FOR UPDATE', [id]);
+    if (!category.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({error: 'Kategori tidak ditemukan'});
+    }
+    const product = await client.query('SELECT 1 FROM products WHERE category_id=$1 LIMIT 1', [id]);
+    if (product.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({error: 'Kategori masih digunakan oleh produk. Pindahkan produknya terlebih dahulu.'});
+    }
+    await client.query('DELETE FROM categories WHERE id=$1', [id]);
+    await client.query('COMMIT');
+    res.json({ok: true});
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    next(error);
+  } finally {
+    client?.release();
+  }
+});
 router.post('/products',async(req,res,next)=>{try{
  if(!valid(req.body))return res.status(400).json({error:'Nama dan harga tidak valid'});
  const b=req.body;const unique=slug(b.name)+'-'+crypto.randomBytes(3).toString('hex');
