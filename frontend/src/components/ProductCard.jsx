@@ -1,2 +1,54 @@
-import {Link} from 'react-router-dom';import {imageUrl,rupiah,waLink} from '../lib/api';import FavoriteButton from './FavoriteButton';import {MessageCircle,Shirt,Tag} from 'lucide-react';
-export default function ProductCard({product,whatsapp}){return <article className="product-card group"><div className="relative"><Link to={'/produk/'+product.slug} className="product-image">{product.images?.[0]?<img src={imageUrl(product.images[0].url)} alt={product.name} loading="lazy"/>:<div className="h-full flex items-center justify-center text-stone-400 text-sm">Foto kebaya</div>}</Link><FavoriteButton id={product.id}/></div><div className="product-info"><Link to={'/produk/'+product.slug}><h3>{product.name}</h3><p className="product-price">{rupiah(product.price)}</p></Link><p className="product-meta"><Tag size={14}/>{product.category||'Koleksi'} <i/> <Shirt size={14}/>{product.sizes||'S - XL'}</p>{whatsapp?<a href={waLink(whatsapp,product)} target="_blank" rel="noreferrer" className="btn booking-btn"><MessageCircle size={17}/> Booking via WhatsApp</a>:null}</div></article>}
+import { Link } from 'react-router-dom';
+import { MessageCircle, Shirt, Tag } from 'lucide-react';
+import { imageUrl, rupiah, waLink } from '../lib/api';
+import FavoriteButton from './FavoriteButton';
+import './product-card.css';
+
+export default function ProductCard({ product, whatsapp }) {
+  const detailPath = '/produk/' + product.slug;
+  const photo = product.images?.[0];
+  const category = product.category || 'Koleksi';
+  const sizes = product.sizes || 'S - XL';
+
+  return (
+    <article className="product-card">
+      <div className="relative">
+        <Link to={detailPath} className="product-image" aria-label={product.name}>
+          {photo ? (
+            <img src={imageUrl(photo.url)} alt={product.name} loading="lazy" />
+          ) : (
+            <span className="product-card__placeholder">Foto kebaya</span>
+          )}
+        </Link>
+        <FavoriteButton id={product.id} />
+      </div>
+      <div className="product-info">
+        <Link to={detailPath}>
+          <h3 className="product-card__title" title={product.name}>{product.name}</h3>
+          <p className="product-price">{rupiah(product.price)}</p>
+        </Link>
+        <p className="product-card__metadata">
+          <span className="product-card__attribute">
+            <Tag size={14} aria-hidden="true" />
+            <span title={category}>{category}</span>
+          </span>
+          <span className="product-card__attribute">
+            <Shirt size={14} aria-hidden="true" />
+            <span title={sizes}>{sizes}</span>
+          </span>
+        </p>
+        {whatsapp && (
+          <a
+            href={waLink(whatsapp, product)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn product-card__booking"
+          >
+            <MessageCircle size={17} aria-hidden="true" />
+            <span>Booking via WhatsApp</span>
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}

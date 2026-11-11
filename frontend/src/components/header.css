@@ -1,0 +1,80 @@
+.site-header .mobile-nav {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .site-header .header-inner {
+    gap: 0.5rem;
+  }
+
+  .site-header .brand {
+    flex-shrink: 0;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .site-header .header-actions {
+    gap: 0.25rem;
+  }
+
+  .site-header .header-actions a,
+  .site-header .header-actions button {
+    inline-size: 44px;
+    block-size: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.625rem;
+  }
+
+  .site-header .header-actions :is(a, button):hover,
+  .site-header .mobile-nav a:hover {
+    background: var(--rose);
+  }
+
+  .site-header .mobile-nav:not([hidden]) {
+    position: absolute;
+    inset-block-start: 100%;
+    inset-inline-end: 0.75rem;
+    display: grid;
+    inline-size: min(20rem, calc(100% - 1.5rem));
+    padding: 0.375rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--paper);
+    box-shadow: 0 12px 24px #39182320;
+  }
+
+  .site-header .mobile-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-block-size: 44px;
+    padding-inline: 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .site-header .mobile-nav a.active {
+    background: var(--rose);
+    color: var(--wine);
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header .header-inner {
+    height: 64px;
+    padding-inline: 0.75rem;
+  }
+
+  .site-header .brand {
+    font-size: clamp(1rem, 5vw, 1.25rem);
+  }
+
+  .site-header .brand small {
+    letter-spacing: 0.24em;
+  }
+
+  .site-header .header-actions .header-instagram {
+    display: none;
+  }
+}

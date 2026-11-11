@@ -1,0 +1,60 @@
+.catalog-results { scroll-margin-top: 110px; }
+.catalog-results:focus { outline: none; }
+.catalog-pagination,
+.catalog-pagination-numbers,
+.catalog-pagination-numbers > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.catalog-pagination {
+  margin-top: 26px;
+  color: #7b2943;
+}
+.catalog-pagination button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border: 1px solid #e7caca;
+  border-radius: 9px;
+  background: #fffafa;
+  font-size: 14px;
+  font-weight: 600;
+}
+.catalog-pagination button:hover:not(:disabled) { background: #f6e1e4; }
+.catalog-pagination button:disabled { opacity: .55; }
+.catalog-pagination button[aria-current="page"] {
+  color: white;
+  background: #842944;
+  border-color: #842944;
+  opacity: 1;
+}
+.catalog-page-gap { padding-inline: 2px; }
+.catalog-page-position { display: none; }
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .catalog-page .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .catalog-page .catalog-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .catalog-page .catalog-filters .search-field { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .catalog-page { padding-inline: clamp(12px, 4vw, 22px); }
+  .catalog-page .catalog-title h1 { font-size: clamp(29px, 7vw, 37px); }
+  .catalog-page .catalog-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .catalog-page .catalog-filters .search-field { grid-column: 1 / -1; }
+  .catalog-page .catalog-filters > input,
+  .catalog-page .catalog-filters select { min-width: 0; padding-inline: 8px; }
+  .catalog-page .catalog-filters input,
+  .catalog-page .catalog-filters select { font-size: 16px; }
+  .catalog-page .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .catalog-utility { flex-wrap: wrap; row-gap: 6px; }
+}
+
+@media (max-width: 440px) {
+  .catalog-pagination-numbers { display: none; }
+  .catalog-page-position { display: block; padding-inline: 14px; }
+}

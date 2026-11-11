@@ -27,7 +27,8 @@ export default function Admin() {
   const auth = {Authorization: 'Bearer ' + token};
   const [view, setView] = useState('dashboard');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [products, setProducts] = useState([]);
+  const [productResult, setProductResult] = useState(null);
+  const [totalProducts, setTotalProducts] = useState(null);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
@@ -40,21 +41,56 @@ export default function Admin() {
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  async function refresh() {
-    const [productList, categoryList] = await Promise.all([request('/products'), request('/categories')]);
-    setProducts(productList);
-    setCategories(categoryList);
-  }
+  const [revision, setRevision] = useState(0);
+  const [summaryError, setSummaryError] = useState('');
+  const productParams = new URLSearchParams({
+    page: String(page),
+    limit: String(pageSize),
+    q: query.trim(),
+    category,
+  });
+  const productUrl = '/products?' + productParams;
 
   useEffect(() => {
-    if (!token) {
-      navigate('/admin/login', {replace: true});
-      return;
-    }
-    refresh().catch(error => setMessage(error.message)).finally(() => setLoading(false));
+    if (!token) navigate('/admin/login', {replace: true});
   }, [token, navigate]);
+
+  useEffect(() => {
+    if (!token) return;
+    const controller = new AbortController();
+    const options = {signal: controller.signal};
+    Promise.all([
+      request('/products?page=1&limit=1', options),
+      request('/categories', options),
+    ]).then(([products, categoryList]) => {
+      if (controller.signal.aborted) return;
+      setTotalProducts(products.total);
+      setCategories(categoryList);
+      setSummaryError('');
+    }).catch(error => {
+      if (!controller.signal.aborted) setSummaryError('Gagal memuat ringkasan katalog. ' + error.message);
+    });
+    return () => controller.abort();
+  }, [token, revision]);
+
+  useEffect(() => {
+    if (!token) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const result = await request(productUrl, {signal: controller.signal});
+        if (!controller.signal.aborted) setProductResult({...result, productUrl, revision});
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setProductResult({items: [], total: 0, page: 1, productUrl, revision, error: error.message});
+        }
+      }
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [token, productUrl, revision]);
 
   useEffect(() => {
     if (!photo) {
@@ -140,7 +176,7 @@ export default function Admin() {
       if (saved) setEditing({...editing, ...saved});
       setMessage(saved ? 'Data produk tersimpan, tetapi foto gagal diunggah. ' + error.message : error.message);
     } finally {
-      if (saved) await refresh().catch(error => setMessage('Gagal memuat ulang daftar produk. ' + error.message));
+      if (saved) refreshCatalog();
       setBusy(false);
     }
   }
@@ -153,7 +189,7 @@ export default function Admin() {
       if (editing?.id === product.id) reset();
       setMessage('');
       void notifySuccess('Produk berhasil dihapus');
-      await refresh().catch(error => setMessage('Gagal memuat ulang daftar produk. ' + error.message));
+      refreshCatalog();
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -167,7 +203,7 @@ export default function Admin() {
     try {
       await request('/admin/images/' + id, {method: 'DELETE', headers: auth});
       setEditing(current => ({...current, images: []}));
-      await refresh();
+      refreshCatalog();
       setMessage('Foto berhasil dihapus.');
     } catch (error) {
       setMessage(error.message);
@@ -191,7 +227,7 @@ export default function Admin() {
         body: JSON.stringify({name: newCategory}),
       });
       resetCategory();
-      await refresh();
+      refreshCatalog();
       setMessage(editingCategory ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.');
     } catch (error) {
       setMessage(error.message);
@@ -206,8 +242,11 @@ export default function Admin() {
     try {
       await request('/admin/categories/' + item.id, {method: 'DELETE', headers: auth});
       if (editingCategory?.id === item.id) resetCategory();
-      if (category === String(item.id)) setCategory('');
-      await refresh();
+      if (category === String(item.id)) {
+        setCategory('');
+        setPage(1);
+      }
+      refreshCatalog();
       setMessage('Kategori berhasil dihapus.');
     } catch (error) {
       setMessage(error.message);
@@ -221,15 +260,21 @@ export default function Admin() {
     setPage(1);
   }
 
+  function refreshCatalog() {
+    setRevision(current => current + 1);
+  }
+
   if (!token) return null;
 
-  const searchTerm = query.trim().toLowerCase();
-  const filtered = products.filter(product =>
-    (!category || String(product.category_id) === category) &&
-    product.name.toLowerCase().includes(searchTerm),
-  );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
+  const loading = productResult?.productUrl !== productUrl || productResult.revision !== revision;
+  const productError = loading ? '' : productResult.error;
+  const products = loading ? [] : productResult.items;
+  const total = productResult?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = productResult?.page ?? 1;
+  const pageNumbers = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])]
+    .filter(number => number >= 1 && number <= totalPages)
+    .sort((first, second) => first - second);
   const start = (currentPage - 1) * pageSize;
   const existingPhoto = editing?.images?.[0];
   const photoUrl = photo ? preview : imageUrl(existingPhoto?.url);
@@ -315,13 +360,13 @@ export default function Admin() {
         </select>
       </div>
       <div className="dashboard-table-wrap">
-        <table className="dashboard-table" role="table" aria-label="Daftar produk">
+        <table className="dashboard-table" role="table" aria-label="Daftar produk" aria-busy={loading}>
           <thead role="rowgroup"><tr role="row">
             <th role="columnheader" scope="col">Foto</th><th role="columnheader" scope="col">Nama Produk</th><th role="columnheader" scope="col">Kategori</th>
             <th role="columnheader" scope="col">Harga Sewa</th><th role="columnheader" scope="col">Aksi</th>
           </tr></thead>
           <tbody role="rowgroup">
-            {filtered.slice(start, start + pageSize).map(product => (
+            {products.map(product => (
               <tr key={product.id} role="row">
                 <td role="cell">{product.images?.[0] ? (
                   <img src={imageUrl(product.images[0].url)} alt={product.name}/>
@@ -340,31 +385,37 @@ export default function Admin() {
                 </div></td>
               </tr>
             ))}
-            {!filtered.length && <tr role="row"><td role="cell" className="dashboard-empty" colSpan={5}>
-              {loading ? 'Memuat produk...' : 'Tidak ada produk yang cocok.'}
+            {!products.length && <tr role="row"><td role="cell" className="dashboard-empty" colSpan={5}>
+              {loading && 'Memuat produk...'}
+              {productError && (
+                <div role="status">
+                  Gagal memuat produk. {productError}{' '}
+                  <button type="button" className="dashboard-secondary" onClick={refreshCatalog}>Coba lagi</button>
+                </div>
+              )}
+              {!loading && !productError && 'Tidak ada produk yang cocok.'}
             </td></tr>}
           </tbody>
         </table>
       </div>
       <div className="dashboard-pagination">
-        <span>{filtered.length
-          ? `Menampilkan ${start + 1}–${Math.min(start + pageSize, filtered.length)} dari ${filtered.length} produk`
-          : '0 produk'}</span>
+        <span>{!loading && !productError && (total
+          ? `Menampilkan ${start + 1}–${start + products.length} dari ${total} produk`
+          : '0 produk')}</span>
         {totalPages > 1 && <div aria-label="Paginasi produk">
-          <button type="button" aria-label="Halaman sebelumnya" disabled={currentPage === 1}
+          <button type="button" aria-label="Halaman sebelumnya" disabled={loading || currentPage === 1}
             onClick={() => setPage(currentPage - 1)}><ChevronLeft size={17}/></button>
-          {Array.from({length: totalPages}, (_, index) => index + 1)
-            .filter(number => number === 1 || number === totalPages || Math.abs(number - currentPage) <= 1)
+          {pageNumbers
             .map((number, index, numbers) => (
               <span key={number}>
                 {index > 0 && number - numbers[index - 1] > 1 && <span aria-hidden="true">…</span>}
-                <button type="button" className={number === currentPage ? 'active' : ''}
+                <button type="button" className={number === currentPage ? 'active' : ''} disabled={loading}
                   aria-current={number === currentPage ? 'page' : undefined} onClick={() => setPage(number)}>
                   {number}
                 </button>
               </span>
             ))}
-          <button type="button" aria-label="Halaman berikutnya" disabled={currentPage === totalPages}
+          <button type="button" aria-label="Halaman berikutnya" disabled={loading || currentPage === totalPages}
             onClick={() => setPage(currentPage + 1)}><ChevronRight size={17}/></button>
         </div>}
       </div>
@@ -414,10 +465,11 @@ export default function Admin() {
           )}
         </header>
         {message && <p role="status" className="dashboard-notice">{message}</p>}
+        {summaryError && <p role="status" className="dashboard-notice">{summaryError}</p>}
         {view === 'dashboard' && <>
           <section className="dashboard-stats" aria-label="Ringkasan katalog">
-            <article><Shirt size={39}/><div><span>Total Produk</span><b>{loading ? '–' : products.length}</b><small>produk kebaya</small></div></article>
-            <article><Tag size={39}/><div><span>Kategori</span><b>{loading ? '–' : categories.length}</b><small>kategori produk</small></div></article>
+            <article><Shirt size={39}/><div><span>Total Produk</span><b>{totalProducts ?? '–'}</b><small>produk kebaya</small></div></article>
+            <article><Tag size={39}/><div><span>Kategori</span><b>{totalProducts === null ? '–' : categories.length}</b><small>kategori produk</small></div></article>
           </section>
           <div className="dashboard-grid">{productForm}{productTable}</div>
         </>}
