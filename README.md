@@ -22,16 +22,17 @@ Aplikasi modular: katalog langsung tanpa banner, filter, favorit tanpa login (lo
 4. Backend memproses foto menjadi WebP dan menyimpan di `UPLOAD_DIR` VPS. PostgreSQL menyimpan path `/uploads/uuid.webp`. Nginx meneruskan permintaan foto ke backend.
 5. Untuk ganti foto, klik **Edit** produk lalu pilih foto baru dan simpan.
 
-## Atur diskon
-- Buka menu **Diskon** di dashboard admin. Atur **Harga flat** untuk menentukan harga sewa akhir dalam rupiah, atau **Persen** untuk menentukan potongan dari harga asli.
-- Pilih beberapa produk atau terapkan ke semua produk. Promo untuk semua produk juga berlaku saat produk baru ditambahkan. Harga flat hanya tampil bila nilainya lebih rendah dari harga asli produk.
-- Dashboard menyimpan satu pengaturan promo. Edit pengaturannya untuk mengganti promo, atau matikan promo dan simpan untuk mengembalikan harga normal.
+## Campaign diskon
+- Buka menu **Diskon** untuk melihat campaign terjadwal, berjalan, dan selesai. Pilih **Buat Campaign**, isi nama serta waktu mulai dan selesai dalam WIB.
+- Tambahkan produk pilihan atau seluruh produk yang sekarang ada di katalog. Atur harga akhir rupiah atau potongan persen per produk. **Edit Massal** menerapkan satu nilai ke produk tercentang atau semua produk dalam campaign.
+- Katalog menampilkan harga promo sesuai periode. Produk dalam campaign terjadwal atau berjalan bisa ditambahkan ke campaign lain setelah campaign sebelumnya selesai atau produknya dikeluarkan.
+- Untuk mengeluarkan produk dari campaign, buka **Edit Campaign**, tekan ikon tempat sampah di baris produk, lalu **Simpan Campaign**. Produk tetap ada di katalog.
 
 ## Deploy VPS
 - Contoh konfigurasi: `deploy/nginx.conf.example`. Pastikan HTTPS aktif dengan Certbot.
 - `frontend`: `npm run build`, serve folder `dist` via Nginx.
 - `backend`: jalankan dengan systemd/PM2; port default 4000 hanya loopback.
-- Untuk database yang sudah ada, jalankan `npm run db:migrate:discount` dari folder `backend` dengan konfigurasi database yang sama seperti layanan API, lalu mulai ulang backend. Build ulang frontend agar menu dan harga diskon tampil.
+- Untuk database yang sudah ada, jalankan `npm run db:migrate:discount-campaigns` dari folder `backend` sebelum memulai API versi baru. Gunakan konfigurasi database yang sama seperti layanan API, lalu build ulang dan rilis frontend. Promo lama yang aktif akan masuk ke daftar sebagai **Diskon sebelumnya**, dengan produk yang memenuhi syarat saat migrasi. Edit periode untuk menentukan tanggal akhirnya.
 - Gunakan `UPLOAD_DIR` absolut dan persisten, misalnya `/var/lib/floo-attire/uploads` dengan permission user service.
 - Backup PostgreSQL dan folder foto secara terjadwal; jangan commit `.env` atau upload foto ke GitHub.
 - Nomor WhatsApp ditetapkan melalui `WHATSAPP_NUMBER` di backend.

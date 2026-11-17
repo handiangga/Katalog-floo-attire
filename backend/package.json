@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "db:init": "node src/init.js",
     "db:migrate:pages": "node src/migrate-pages.js",
-    "db:migrate:discount": "node src/migrate-discount.js"
+    "db:migrate:discount": "node src/migrate-discount.js",
+    "db:migrate:discount-campaigns": "node src/migrate-discount-campaigns.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

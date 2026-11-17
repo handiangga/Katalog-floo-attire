@@ -4,16 +4,18 @@ const router=Router();
 const select=`SELECT p.*, c.name AS category, applied.discount_price,
  COALESCE((SELECT json_agg(json_build_object('id',i.id,'url',i.path) ORDER BY i.sort_order,i.id) FROM product_images i WHERE i.product_id=p.id),'[]'::json) AS images
  FROM products p LEFT JOIN categories c ON c.id=p.category_id
- LEFT JOIN catalog_discount promo ON promo.id = 1 AND promo.enabled
-   AND (promo.scope = 'all' OR p.id = ANY(promo.product_ids))
  CROSS JOIN LATERAL (
-   SELECT CASE promo.type
-     WHEN 'flat' THEN promo.value
-     WHEN 'percent' THEN ROUND(p.price::numeric * (100 - promo.value) / 100)::integer
-   END AS candidate
- ) proposed
- CROSS JOIN LATERAL (
-   SELECT CASE WHEN proposed.candidate < p.price THEN proposed.candidate END AS discount_price
+   SELECT MIN(proposed.price) FILTER (WHERE proposed.price < p.price) AS discount_price
+   FROM discount_campaign_products item
+   JOIN discount_campaigns campaign ON campaign.id = item.campaign_id
+   CROSS JOIN LATERAL (
+     SELECT CASE item.type
+       WHEN 'flat' THEN item.value
+       WHEN 'percent' THEN ROUND(p.price::numeric * (100 - item.value) / 100)::integer
+     END AS price
+   ) proposed
+   WHERE item.product_id = p.id AND campaign.starts_at <= now()
+     AND (campaign.ends_at IS NULL OR now() < campaign.ends_at)
  ) applied`;
 router.get('/categories',async(req,res,next)=>{try{res.json((await pool.query('SELECT * FROM categories ORDER BY name')).rows);}catch(e){next(e);}});
 router.get('/settings',(req,res)=>res.json({whatsapp:process.env.WHATSAPP_NUMBER||''}));
