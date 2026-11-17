@@ -6,7 +6,8 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:init": "node src/init.js",
-    "db:migrate:pages": "node src/migrate-pages.js"
+    "db:migrate:pages": "node src/migrate-pages.js",
+    "db:migrate:discount": "node src/migrate-discount.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

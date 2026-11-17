@@ -2,10 +2,11 @@ import {useEffect, useRef, useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {
   BookOpen, ChevronLeft, ChevronRight, CirclePlus, CloudUpload, Eye, House,
-  Image, LogOut, Menu, Pencil, Save, Search, Shirt, Tag, Trash2, X,
+  Image, LogOut, Menu, Pencil, Percent, Save, Search, Shirt, Tag, Trash2, X,
 } from 'lucide-react';
 import {request, imageUrl, rupiah} from '../lib/api';
 import PageContentEditor from './PageContentEditor';
+import AdminDiscount from './AdminDiscount';
 import {notifySuccess} from '../lib/adminAlerts';
 
 const emptyForm = {name: '', price: '', category_id: '', color: '', sizes: '', description: ''};
@@ -15,6 +16,7 @@ const views = [
   {id: 'products', label: 'Produk', icon: Shirt},
   {id: 'form', label: 'Tambah Produk', icon: CirclePlus},
   {id: 'categories', label: 'Kategori', icon: Tag},
+  {id: 'discount', label: 'Diskon', icon: Percent},
   {id: 'pages', label: 'Tentang & Rules', icon: BookOpen},
 ];
 
@@ -511,6 +513,7 @@ export default function Admin() {
             </ul>
           </section>
         )}
+        {view === 'discount' && <AdminDiscount token={token}/>}
         {view === 'pages' && <PageContentEditor token={token}/>}
       </main>
     </div>

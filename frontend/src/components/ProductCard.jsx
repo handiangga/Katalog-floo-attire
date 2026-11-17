@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { MessageCircle, Shirt, Tag } from 'lucide-react';
-import { imageUrl, rupiah, waLink } from '../lib/api';
+import { imageUrl, waLink } from '../lib/api';
 import FavoriteButton from './FavoriteButton';
+import RentalPrice from './RentalPrice';
 import './product-card.css';
 
 export default function ProductCard({ product, whatsapp }) {
@@ -25,7 +26,7 @@ export default function ProductCard({ product, whatsapp }) {
       <div className="product-info">
         <Link to={detailPath}>
           <h3 className="product-card__title" title={product.name}>{product.name}</h3>
-          <p className="product-price">{rupiah(product.price)}</p>
+          <RentalPrice price={product.price} discountPrice={product.discount_price} />
         </Link>
         <p className="product-card__metadata">
           <span className="product-card__attribute">

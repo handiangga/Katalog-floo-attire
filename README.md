@@ -22,10 +22,16 @@ Aplikasi modular: katalog langsung tanpa banner, filter, favorit tanpa login (lo
 4. Backend memproses foto menjadi WebP dan menyimpan di `UPLOAD_DIR` VPS. PostgreSQL menyimpan path `/uploads/uuid.webp`. Nginx meneruskan permintaan foto ke backend.
 5. Untuk ganti foto, klik **Edit** produk lalu pilih foto baru dan simpan.
 
+## Atur diskon
+- Buka menu **Diskon** di dashboard admin. Atur **Harga flat** untuk menentukan harga sewa akhir dalam rupiah, atau **Persen** untuk menentukan potongan dari harga asli.
+- Pilih beberapa produk atau terapkan ke semua produk. Promo untuk semua produk juga berlaku saat produk baru ditambahkan. Harga flat hanya tampil bila nilainya lebih rendah dari harga asli produk.
+- Dashboard menyimpan satu pengaturan promo. Edit pengaturannya untuk mengganti promo, atau matikan promo dan simpan untuk mengembalikan harga normal.
+
 ## Deploy VPS
 - Contoh konfigurasi: `deploy/nginx.conf.example`. Pastikan HTTPS aktif dengan Certbot.
 - `frontend`: `npm run build`, serve folder `dist` via Nginx.
 - `backend`: jalankan dengan systemd/PM2; port default 4000 hanya loopback.
+- Untuk database yang sudah ada, jalankan `npm run db:migrate:discount` dari folder `backend` dengan konfigurasi database yang sama seperti layanan API, lalu mulai ulang backend. Build ulang frontend agar menu dan harga diskon tampil.
 - Gunakan `UPLOAD_DIR` absolut dan persisten, misalnya `/var/lib/floo-attire/uploads` dengan permission user service.
 - Backup PostgreSQL dan folder foto secara terjadwal; jangan commit `.env` atau upload foto ke GitHub.
 - Nomor WhatsApp ditetapkan melalui `WHATSAPP_NUMBER` di backend.

@@ -6,7 +6,10 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 import {pool} from '../db.js';
 import {requireAdmin} from '../middleware/auth.js';
+import {getDiscount, updateDiscount} from './discount.js';
 const router=Router();router.use(requireAdmin);
+router.get('/discount', getDiscount);
+router.put('/discount', updateDiscount);
 const dir=path.resolve(process.env.UPLOAD_DIR||'./uploads');fs.mkdirSync(dir,{recursive:true});
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1},fileFilter:(_,file,cb)=>cb(null,['image/jpeg','image/png','image/webp'].includes(file.mimetype))});
 function valid(b){return typeof b.name==='string'&&!!b.name.trim()&&Number.isSafeInteger(Number(b.price))&&Number(b.price)>=0;}

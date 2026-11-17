@@ -1,6 +1,7 @@
 import {pool} from './db.js';
 import bcrypt from 'bcryptjs';
 import {ensureSitePagesTable} from './site-pages.js';
+import {ensureCatalogDiscountTable} from './catalog-discount.js';
 if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.startsWith('CHANGE_')) {
   console.error('Set ADMIN_PASSWORD yang kuat di .env sebelum inisialisasi.'); process.exit(1);
 }
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS product_images (
 );
 `);
 await ensureSitePagesTable();
+await ensureCatalogDiscountTable();
 const hash=await bcrypt.hash(process.env.ADMIN_PASSWORD,12);
 await pool.query('INSERT INTO admins(email,password_hash) VALUES($1,$2) ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash',[process.env.ADMIN_EMAIL,hash]);
 for(const name of ['Kebaya','One Set','Dress','Rok']) await pool.query('INSERT INTO categories(name) VALUES($1) ON CONFLICT DO NOTHING',[name]);
